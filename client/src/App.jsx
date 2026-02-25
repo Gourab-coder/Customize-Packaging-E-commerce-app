@@ -1,5 +1,6 @@
 import Home from './pages/home/home'
 import Products from './pages/products/products'
+import Customize from './pages/customize/customize'
 import Layout from './components/layout/Layout'
 import './App.css'
 import { useState } from 'react'
@@ -9,7 +10,9 @@ function App() {
 
   return (
     <Layout currentPage={currentPage} onNavigate={setCurrentPage}>
-      {currentPage === 'products' ? <Products /> : <Home />}
+      {currentPage === 'products' && <Products />}
+      {currentPage === 'customize' && <Customize />}
+      {currentPage === 'home' && <Home />}
     </Layout>
   )
 }

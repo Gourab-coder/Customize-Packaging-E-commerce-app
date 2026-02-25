@@ -20,11 +20,15 @@ export default function Navbar({ currentPage, onNavigate }) {
           >
             Products
           </button>
-          <button type="button" className="nav-link-btn">
+          <button
+            type="button"
+            className={`nav-link-btn ${currentPage === 'customize' ? 'active' : ''}`}
+            onClick={() => onNavigate('customize')}
+          >
             Customize
           </button>
           <button type="button" className="nav-link-btn">
-            Contact
+            About
           </button>
         </nav>
         <button type="button" className="nav-button">
