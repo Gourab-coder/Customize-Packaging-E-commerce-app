@@ -1,17 +1,16 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import Home from './pages/home/home'
+import Products from './pages/products/products'
+import Layout from './components/layout/Layout'
 import './App.css'
+import { useState } from 'react'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [currentPage, setCurrentPage] = useState('home')
 
   return (
-    <>
-      <div>
-        hello world
-      </div>
-    </>
+    <Layout currentPage={currentPage} onNavigate={setCurrentPage}>
+      {currentPage === 'products' ? <Products /> : <Home />}
+    </Layout>
   )
 }
 

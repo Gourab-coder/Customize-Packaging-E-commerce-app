@@ -1,0 +1,50 @@
+.app-shell {
+  --bg-primary: #f6f1e8;
+  --bg-secondary: #ffffff;
+  --text-main: #1f2937;
+  --brand: #3b7a57;
+  --brand-dark: #29543b;
+  --card-border: #d6dece;
+  min-height: 100vh;
+  background: linear-gradient(165deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, #edf5ea 100%);
+  color: var(--text-main);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.app-bg-glow {
+  position: absolute;
+  width: 360px;
+  height: 360px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(59, 122, 87, 0.2) 0%, rgba(59, 122, 87, 0) 70%);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.app-bg-glow-left {
+  top: -140px;
+  left: -100px;
+}
+
+.app-bg-glow-right {
+  right: -120px;
+  bottom: -120px;
+}
+
+.app-main {
+  width: min(1100px, 92vw);
+  margin: 0 auto;
+  flex: 1;
+  padding: 2rem 0 3rem;
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 768px) {
+  .app-main {
+    padding: 1.5rem 0 2rem;
+  }
+}
