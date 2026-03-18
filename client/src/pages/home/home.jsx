@@ -3,8 +3,11 @@ import CustomCard from '../../components/custom_card/custom_card'
 import ProductCard from '../../components/product_card/product_card'
 import { IoIosArrowDown } from 'react-icons/io'
 import packImage from '../../assets/pack1.png'
+import { useNavigate } from 'react-router-dom'
 
 const Home = () => {
+  const navigate = useNavigate()
+
   return (
     <section className="home">
       <CustomCard />
@@ -17,7 +20,7 @@ const Home = () => {
           <ProductCard />
           <ProductCard />
         </div>
-        <button className="more-btn">
+        <button className="more-btn" onClick={() => navigate('/products')}>
           more
           <IoIosArrowDown className="more-icon" />
         </button>

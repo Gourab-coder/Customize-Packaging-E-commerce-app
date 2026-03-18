@@ -1,8 +1,11 @@
 import './custom_card.css'
 import { PiPackageLight } from 'react-icons/pi'
 import packagingImage from '../../assets/70-Packaging-Intro.jpg'
+import { useNavigate } from 'react-router-dom'
 
 const CustomCard = () => {
+  const navigate = useNavigate()
+
   return (
     <section className="custom-card" style={{ '--card-bg': `url(${packagingImage})` }}>
       <div className="custom-card-overlay">
@@ -21,7 +24,7 @@ const CustomCard = () => {
           without delay.
         </p>
 
-        <button type="button" className="custom-card-btn">
+        <button type="button" className="custom-card-btn" onClick={() => navigate('/customize')}>
           Start Customizing
         </button>
       </div>

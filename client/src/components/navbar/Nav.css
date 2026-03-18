@@ -32,6 +32,7 @@
 }
 
 .nav-link-btn {
+  text-decoration: none;
   border: none;
   background: transparent;
   color: #2f4b3a;
@@ -61,6 +62,28 @@
   background-color: #2f6145;
 }
 
+.nav-user-area {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.nav-user-name {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #2f4b3a;
+}
+
+.nav-button-secondary {
+  background-color: #eef4eb;
+  color: #2f6145;
+}
+
+.nav-button-secondary:hover {
+  background-color: #dce9d6;
+}
+
 @media (max-width: 860px) {
   .nav-links {
     display: none;
@@ -68,5 +91,9 @@
 
   .navbar-inner {
     min-height: 64px;
+  }
+
+  .nav-user-name {
+    display: none;
   }
 }

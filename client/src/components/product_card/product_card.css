@@ -38,6 +38,13 @@
   color: #e4f3c8;
 }
 
+.product-card-price {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: #ffffff;
+  font-weight: 700;
+}
+
 .product-card-btn {
   border: 0;
   border-radius: 8px;

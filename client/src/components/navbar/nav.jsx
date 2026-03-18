@@ -1,39 +1,50 @@
+import { NavLink } from 'react-router-dom'
 import './Nav.css'
 
-export default function Navbar({ currentPage, onNavigate }) {
+export default function Navbar({ onLoginClick, onLogout, user }) {
+  const navLinkClass = ({ isActive }) =>
+    `nav-link-btn ${isActive ? 'active' : ''}`
+
   return (
     <header className="navbar">
       <div className="navbar-inner">
         <div className="brand">Customize Packaging</div>
         <nav className="nav-links">
-          <button
-            type="button"
-            className={`nav-link-btn ${currentPage === 'home' ? 'active' : ''}`}
-            onClick={() => onNavigate('home')}
-          >
+          <NavLink to="/" end className={navLinkClass}>
             Home
-          </button>
-          <button
-            type="button"
-            className={`nav-link-btn ${currentPage === 'products' ? 'active' : ''}`}
-            onClick={() => onNavigate('products')}
-          >
+          </NavLink>
+          <NavLink to="/products" className={navLinkClass}>
             Products
-          </button>
-          <button
-            type="button"
-            className={`nav-link-btn ${currentPage === 'customize' ? 'active' : ''}`}
-            onClick={() => onNavigate('customize')}
-          >
+          </NavLink>
+          <NavLink to="/customize" className={navLinkClass}>
             Customize
-          </button>
-          <button type="button" className="nav-link-btn">
+          </NavLink>
+          <NavLink to="/about" className={navLinkClass}>
             About
-          </button>
+          </NavLink>
+          {user && (
+            <NavLink to="/orders" className={navLinkClass}>
+              My Orders
+            </NavLink>
+          )}
+          {user?.role === 'admin' && (
+            <NavLink to="/admin" className={navLinkClass}>
+              Admin Panel
+            </NavLink>
+          )}
         </nav>
-        <button type="button" className="nav-button">
-          Log In
-        </button>
+        {user ? (
+          <div className="nav-user-area">
+            <p className="nav-user-name">{user.name}</p>
+            <button type="button" className="nav-button nav-button-secondary" onClick={onLogout}>
+              Logout
+            </button>
+          </div>
+        ) : (
+          <button type="button" className="nav-button" onClick={onLoginClick}>
+            Log In
+          </button>
+        )}
       </div>
     </header>
   )

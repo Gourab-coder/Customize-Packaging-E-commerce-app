@@ -1,27 +1,51 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const dotenv = require('dotenv');
+require('dotenv').config();
 
+const express = require('express');
+const cors = require('cors');
+const { connectDB } = require('./app/config/db');
+const authRoutes = require('./app/routes/authRoutes');
+const categoriesRoutes = require('./app/routes/categoriesRoutes');
+const productsRoutes = require('./app/routes/productsRoutes');
+const ordersRoutes = require('./app/routes/ordersRoutes');
 
 const app = express();
+const PORT = Number(process.env.PORT) || 3000;
+
+const rawOrigins = process.env.CLIENT_URL
+  ? process.env.CLIENT_URL.split(',').map((origin) => origin.trim()).filter(Boolean)
+  : [];
+const corsOptions = {
+  origin: rawOrigins.length > 0 ? rawOrigins : '*',
+  credentials: rawOrigins.length > 0
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
-dotenv.config();
-
-// app.use(cors());
-app.use(cors({
-  origin: "*",  // ✅ your frontend URL
-  credentials: true,  // ✅ if you’re using cookies or tokens
-}));
-
 
 app.get('/', (req, res) => {
-  res.send('welcome to the server');
+  res.json({ message: 'Packaging backend is running' });
 });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
 });
 
-// http://localhost:3000/
+app.use('/api/auth', authRoutes);
+app.use('/api/categories', categoriesRoutes);
+app.use('/api/products', productsRoutes);
+app.use('/api/orders', ordersRoutes);
+
+app.use((req, res) => {
+  res.status(404).json({ message: 'Route not found' });
+});
+
+connectDB()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+    });
+  })
+  .catch((error) => {
+    console.error('Failed to start server:', error.message);
+    process.exit(1);
+  });

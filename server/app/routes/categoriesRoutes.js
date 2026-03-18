@@ -1,0 +1,19 @@
+const express = require('express');
+const {
+  getCategories,
+  getCategoryById,
+  createCategory,
+  updateCategory,
+  deleteCategory
+} = require('../controllers/categoryController');
+const { protect, authorizeRoles } = require('../middleware/authMiddleware');
+
+const router = express.Router();
+
+router.get('/', getCategories);
+router.get('/:id', getCategoryById);
+router.post('/', protect, authorizeRoles('admin'), createCategory);
+router.put('/:id', protect, authorizeRoles('admin'), updateCategory);
+router.delete('/:id', protect, authorizeRoles('admin'), deleteCategory);
+
+module.exports = router;
