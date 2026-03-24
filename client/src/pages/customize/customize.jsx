@@ -40,6 +40,7 @@ const Customize = () => {
   const [quantity, setQuantity] = useState(100)
   const [isConsultModalOpen, setIsConsultModalOpen] = useState(false)
   const [isQuotationModalOpen, setIsQuotationModalOpen] = useState(false)
+  const [successMessage, setSuccessMessage] = useState('')
   const [consultForm, setConsultForm] = useState({
     name: '',
     contactNumber: '',
@@ -91,6 +92,7 @@ const Customize = () => {
   const handleConsultSubmit = (event) => {
     event.preventDefault()
     setIsConsultModalOpen(false)
+    setSuccessMessage('Consultation request submitted. Our packaging team will contact you shortly.')
     setConsultForm({
       name: '',
       contactNumber: '',
@@ -110,6 +112,7 @@ const Customize = () => {
   const handleQuotationSubmit = (event) => {
     event.preventDefault()
     setIsQuotationModalOpen(false)
+    setSuccessMessage('Quotation request submitted. We will review your design details and get back to you.')
     setQuotationForm({
       name: '',
       whatsappNumber: '',
@@ -121,6 +124,31 @@ const Customize = () => {
 
   return (
     <section className="customize-page">
+      <section className="customize-hero">
+        <div>
+          <p className="customize-eyebrow">Packaging Estimator</p>
+          <h1>Plan materials, size, and quantity before you order</h1>
+          <p className="customize-hero-copy">
+            Use this estimator to shape the right packaging setup for your product. It gives you a fast pricing
+            direction and helps you prepare a cleaner brief for production.
+          </p>
+        </div>
+        <div className="customize-hero-points">
+          <article>
+            <strong>Instant estimate</strong>
+            <span>See pricing changes as you update the spec.</span>
+          </article>
+          <article>
+            <strong>Material planning</strong>
+            <span>Compare recycled, kraft, and premium options.</span>
+          </article>
+          <article>
+            <strong>Production support</strong>
+            <span>Book a call or request a full quotation with artwork links.</span>
+          </article>
+        </div>
+      </section>
+
       <section className="customize-config-card">
         <h1>Customize Your Packaging</h1>
         <p className="customize-config-subtitle">
@@ -189,8 +217,14 @@ const Customize = () => {
           <p>Discount: {pricing.discountPercent}%</p>
           <p>Unit Price: INR {pricing.unitPrice}</p>
           <h2>Total Price: INR {pricing.totalPrice}</h2>
+          <span className="customize-price-note">
+            This is an estimate for planning purposes. Final pricing depends on artwork, dimensions, and production
+            review.
+          </span>
         </div>
       </section>
+
+      {successMessage && <p className="customize-success-banner">{successMessage}</p>}
 
       <section className="customize-support-grid">
         <article className="customize-support-card">

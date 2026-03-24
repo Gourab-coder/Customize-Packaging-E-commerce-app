@@ -1,8 +1,8 @@
 .navbar {
   width: 100%;
-  border-bottom: 1px solid #d6dece;
-  background-color: rgba(255, 255, 255, 0.78);
-  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+  background-color: rgba(255, 250, 242, 0.7);
+  backdrop-filter: blur(16px);
   position: sticky;
   top: 0;
   z-index: 20;
@@ -11,77 +11,119 @@
 .navbar-inner {
   width: min(1100px, 92vw);
   margin: 0 auto;
-  min-height: 70px;
+  min-height: 78px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 1rem;
+  gap: 1.2rem;
+  padding: 0.8rem 0;
+}
+
+.brand-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  text-decoration: none;
+}
+
+.brand-kicker {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-weight: 700;
+  color: var(--brand-accent);
 }
 
 .brand {
-  font-size: 1rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  color: #234031;
+  font-family: 'Outfit', 'Segoe UI', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: var(--brand-strong);
 }
 
 .nav-links {
   display: flex;
   align-items: center;
-  gap: 1.25rem;
+  gap: 0.45rem;
+  padding: 0.35rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.56);
 }
 
 .nav-link-btn {
   text-decoration: none;
-  border: none;
-  background: transparent;
-  color: #2f4b3a;
-  font-weight: 500;
+  color: var(--text-muted);
+  font-weight: 600;
   font-size: 0.95rem;
-  cursor: pointer;
-  padding: 0;
+  padding: 0.62rem 0.95rem;
+  border-radius: 999px;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
 }
 
 .nav-link-btn:hover,
 .nav-link-btn.active {
-  color: #3b7a57;
+  color: var(--brand-strong);
+  background: rgba(39, 79, 61, 0.1);
+}
+
+.nav-link-btn:hover {
+  transform: translateY(-1px);
 }
 
 .nav-button {
-  background-color: #3b7a57;
+  background: linear-gradient(135deg, var(--brand) 0%, var(--brand-strong) 100%);
   color: #ffffff;
   border: 0;
-  border-radius: 8px;
-  font-size: 0.9rem;
+  border-radius: 999px;
+  font-size: 0.92rem;
   font-weight: 600;
-  padding: 0.6rem 1rem;
+  padding: 0.8rem 1.15rem;
   cursor: pointer;
+  box-shadow: 0 12px 24px rgba(24, 53, 40, 0.15);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .nav-button:hover {
-  background-color: #2f6145;
+  transform: translateY(-1px);
+  box-shadow: 0 16px 28px rgba(24, 53, 40, 0.2);
 }
 
 .nav-user-area {
   display: flex;
   align-items: center;
-  gap: 0.7rem;
+  gap: 0.9rem;
+}
+
+.nav-user-copy {
+  text-align: right;
+}
+
+.nav-user-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-soft);
+  font-weight: 700;
 }
 
 .nav-user-name {
   margin: 0;
   font-size: 0.9rem;
-  font-weight: 600;
-  color: #2f4b3a;
+  font-weight: 700;
+  color: var(--brand-strong);
 }
 
 .nav-button-secondary {
-  background-color: #eef4eb;
-  color: #2f6145;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--brand);
+  border: 1px solid var(--line-strong);
+  box-shadow: none;
 }
 
 .nav-button-secondary:hover {
-  background-color: #dce9d6;
+  box-shadow: none;
 }
 
 @media (max-width: 860px) {
@@ -93,7 +135,11 @@
     min-height: 64px;
   }
 
-  .nav-user-name {
+  .nav-user-copy {
     display: none;
+  }
+
+  .brand-kicker {
+    font-size: 0.66rem;
   }
 }

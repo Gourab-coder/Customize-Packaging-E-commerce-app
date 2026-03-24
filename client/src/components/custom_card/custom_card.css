@@ -1,6 +1,6 @@
 .custom-card {
   width: 100%;
-  min-height: 380px;
+  min-height: 460px;
   background-image: var(--card-bg);
   background-position: center;
   background-size: cover;
@@ -11,26 +11,26 @@
   display: flex;
   align-items: stretch;
   box-sizing: border-box;
-  border-radius: 14px;
-  box-shadow: 0 16px 36px rgba(15, 25, 15, 0.28);
+  border-radius: 28px;
+  box-shadow: 0 28px 60px rgba(15, 25, 15, 0.2);
 }
 
 .custom-card::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, rgba(16, 35, 23, 0.84) 0%, rgba(16, 35, 23, 0.65) 45%, rgba(16, 35, 23, 0.35) 100%);
+  background: linear-gradient(100deg, rgba(15, 32, 24, 0.94) 0%, rgba(15, 32, 24, 0.72) 48%, rgba(15, 32, 24, 0.3) 100%);
 }
 
 .custom-card-overlay {
   position: relative;
   z-index: 1;
   width: 100%;
-  padding: 28px;
+  padding: 2rem;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
-  gap: 14px;
+  justify-content: space-between;
+  gap: 1.1rem;
   height: 100%;
 }
 
@@ -51,42 +51,78 @@
 
 .custom-card h2 {
   margin: 0;
-  font-size: clamp(1.6rem, 2.6vw, 2.25rem);
-  line-height: 1.15;
-  max-width: 24ch;
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  line-height: 0.98;
+  max-width: 12ch;
 }
 
 .custom-card-copy {
   margin: 0;
-  font-size: 1rem;
-  line-height: 1.7;
+  font-size: 1.02rem;
+  line-height: 1.8;
   opacity: 0.98;
-  max-width: 58ch;
+  max-width: 54ch;
+}
+
+.custom-card-points {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+}
+
+.custom-card-points span {
+  padding: 0.55rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #ebf7ea;
+}
+
+.custom-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  margin-top: auto;
 }
 
 .custom-card-btn {
   border: 0;
-  background: #b5e550;
-  color: #213206;
+  background: linear-gradient(135deg, #d68744 0%, #b7662a 100%);
+  color: #fffaf2;
   font-weight: 700;
   width: fit-content;
   padding: 12px 20px;
   border-radius: 999px;
   cursor: pointer;
   font-size: 1rem;
-  margin-top: auto;
-  align-self: flex-end;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.custom-card-btn:hover {
+  transform: translateY(-1px);
+}
+
+.custom-card-btn-secondary {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
 @media (max-width: 900px) {
   .custom-card {
-    min-height: 460px;
-    border-radius: 12px;
+    min-height: 500px;
+    border-radius: 22px;
   }
 
   .custom-card-overlay {
     padding: 20px;
     gap: 12px;
+  }
+
+  .custom-card h2 {
+    max-width: 11ch;
+    font-size: clamp(2rem, 10vw, 2.9rem);
   }
 
   .custom-card-copy {

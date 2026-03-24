@@ -19,14 +19,20 @@ const CustomCard = () => {
           Make your packaging impossible to ignore with premium custom boxes, cups, and wraps that increase repeat
           orders and customer trust.
         </p>
-        <p className="custom-card-copy">
-          Get expert design help, low minimum quantity, and fast production so you can launch your branded packaging
-          without delay.
-        </p>
+        <div className="custom-card-points">
+          <span>Low MOQ</span>
+          <span>Fast quotations</span>
+          <span>Eco-focused materials</span>
+        </div>
 
-        <button type="button" className="custom-card-btn" onClick={() => navigate('/customize')}>
-          Start Customizing
-        </button>
+        <div className="custom-card-actions">
+          <button type="button" className="custom-card-btn" onClick={() => navigate('/customize')}>
+            Start Customizing
+          </button>
+          <button type="button" className="custom-card-btn custom-card-btn-secondary" onClick={() => navigate('/products')}>
+            Explore Products
+          </button>
+        </div>
       </div>
     </section>
   )
