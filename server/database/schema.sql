@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS product_images (
   id INT AUTO_INCREMENT PRIMARY KEY,
   product_id INT NOT NULL,
   image_url VARCHAR(255) NOT NULL,
+  public_id VARCHAR(255) NULL,
   FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
 );
 
@@ -51,4 +52,24 @@ CREATE TABLE IF NOT EXISTS order_items (
   price DECIMAL(10,2) NOT NULL,
   FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
   FOREIGN KEY (product_id) REFERENCES products(id)
+);
+
+CREATE TABLE IF NOT EXISTS consultation_requests (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  contact_number VARCHAR(30) NOT NULL,
+  preferred_call_time VARCHAR(20) NOT NULL,
+  product_type VARCHAR(50) NOT NULL,
+  product_details TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS quotation_requests (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  whatsapp_number VARCHAR(30) NOT NULL,
+  drive_link VARCHAR(500) NOT NULL,
+  product_type VARCHAR(50) NOT NULL,
+  product_description TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

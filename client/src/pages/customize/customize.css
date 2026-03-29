@@ -169,6 +169,14 @@
   color: var(--success);
 }
 
+.customize-error-banner {
+  padding: 0.95rem 1rem;
+  border-radius: 16px;
+  background: #fdf0f0;
+  border: 1px solid #f3d0d0;
+  color: #a12828;
+}
+
 .customize-support-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(260px, 1fr));
@@ -290,6 +298,11 @@
   color: #f6ffe8;
   font-weight: 700;
   cursor: pointer;
+}
+
+.customize-modal-submit:disabled {
+  opacity: 0.75;
+  cursor: wait;
 }
 
 @media (max-width: 768px) {

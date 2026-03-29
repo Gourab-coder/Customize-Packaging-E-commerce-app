@@ -10,19 +10,23 @@ const emptyForm = {
   price: '',
   stock: '',
   category_id: '',
-  image_urls: '',
+  images: [],
 }
 
 export default function Admin() {
   const { user, token, isAuthenticated } = useAuth()
   const [categories, setCategories] = useState([])
   const [products, setProducts] = useState([])
+  const [orders, setOrders] = useState([])
+  const [consultationRequests, setConsultationRequests] = useState([])
+  const [quotationRequests, setQuotationRequests] = useState([])
   const [productForm, setProductForm] = useState(emptyForm)
   const [categoryName, setCategoryName] = useState('')
   const [categoryDescription, setCategoryDescription] = useState('')
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const [statusDrafts, setStatusDrafts] = useState({})
 
   const isAdmin = isAuthenticated && user?.role === 'admin'
 
@@ -30,12 +34,23 @@ export default function Admin() {
     setLoading(true)
     setError('')
     try {
-      const [productsRes, categoriesRes] = await Promise.all([
+      const [productsRes, categoriesRes, ordersRes, consultationsRes, quotationsRes] = await Promise.all([
         api.getProducts(),
         api.getCategories(),
+        api.getAllOrders(token),
+        api.getConsultationRequests(token),
+        api.getQuotationRequests(token),
       ])
       setProducts(Array.isArray(productsRes) ? productsRes : [])
       setCategories(Array.isArray(categoriesRes) ? categoriesRes : [])
+      setOrders(Array.isArray(ordersRes) ? ordersRes : [])
+      setConsultationRequests(Array.isArray(consultationsRes) ? consultationsRes : [])
+      setQuotationRequests(Array.isArray(quotationsRes) ? quotationsRes : [])
+      setStatusDrafts(
+        Object.fromEntries(
+          (Array.isArray(ordersRes) ? ordersRes : []).map((order) => [order.id, order.status]),
+        ),
+      )
     } catch (apiError) {
       setError(apiError.message)
     } finally {
@@ -47,7 +62,7 @@ export default function Admin() {
     if (isAdmin) {
       loadData()
     }
-  }, [isAdmin])
+  }, [isAdmin, token])
 
   const categoryOptions = useMemo(
     () =>
@@ -98,19 +113,18 @@ export default function Admin() {
     setMessage('')
 
     try {
-      const imageUrls = productForm.image_urls
-        .split(',')
-        .map((item) => item.trim())
-        .filter(Boolean)
+      const formData = new FormData()
+      formData.append('name', productForm.name)
+      formData.append('description', productForm.description)
+      formData.append('price', String(Number(productForm.price)))
+      formData.append('stock', String(Number(productForm.stock)))
+      formData.append('category_id', String(Number(productForm.category_id)))
 
-      await api.createProduct(token, {
-        name: productForm.name,
-        description: productForm.description,
-        price: Number(productForm.price),
-        stock: Number(productForm.stock),
-        category_id: Number(productForm.category_id),
-        image_urls: imageUrls,
+      Array.from(productForm.images).forEach((file) => {
+        formData.append('images', file)
       })
+
+      await api.createProduct(token, formData)
 
       setProductForm(emptyForm)
       setMessage('Product created successfully.')
@@ -132,10 +146,29 @@ export default function Admin() {
     }
   }
 
+  const handleOrderStatusChange = (orderId, value) => {
+    setStatusDrafts((prev) => ({
+      ...prev,
+      [orderId]: value,
+    }))
+  }
+
+  const handleUpdateOrderStatus = async (orderId) => {
+    setError('')
+    setMessage('')
+    try {
+      await api.updateOrderStatus(token, orderId, statusDrafts[orderId] || 'pending')
+      setMessage('Order status updated successfully.')
+      await loadData()
+    } catch (apiError) {
+      setError(apiError.message)
+    }
+  }
+
   return (
     <section className="admin-page">
       <h1>Admin Panel</h1>
-      <p className="admin-subtitle">Manage categories and products.</p>
+      <p className="admin-subtitle">Manage products and review consultation or quotation requests.</p>
 
       {loading && <p className="admin-note">Loading admin data...</p>}
       {message && <p className="admin-note admin-note-success">{message}</p>}
@@ -237,13 +270,13 @@ export default function Admin() {
               </select>
             </label>
             <label>
-              Image URLs (comma-separated)
+              Product Images
               <input
-                type="text"
-                placeholder="https://image1.jpg, https://image2.jpg"
-                value={productForm.image_urls}
+                type="file"
+                accept="image/*"
+                multiple
                 onChange={(event) =>
-                  setProductForm((prev) => ({ ...prev, image_urls: event.target.value }))
+                  setProductForm((prev) => ({ ...prev, images: event.target.files || [] }))
                 }
               />
             </label>
@@ -278,6 +311,119 @@ export default function Admin() {
                 >
                   Delete
                 </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </article>
+
+      <article className="admin-card admin-orders-list">
+        <h2>All Orders</h2>
+        {orders.length === 0 ? (
+          <p className="admin-empty">No orders available.</p>
+        ) : (
+          <div className="admin-orders-stack">
+            {orders.map((order) => (
+              <div className="admin-order-card" key={order.id}>
+                <div className="admin-order-top">
+                  <div>
+                    <strong>Order #{order.id}</strong>
+                    <p>
+                      {order.customer_name} ({order.customer_email})
+                    </p>
+                  </div>
+                  <div className="admin-order-meta">
+                    <span>Total: INR {Number(order.total).toFixed(2)}</span>
+                    <span>Status: {order.status}</span>
+                    <span>{new Date(order.created_at).toLocaleString()}</span>
+                  </div>
+                </div>
+
+                <div className="admin-order-items">
+                  {order.items.map((item) => (
+                    <div className="admin-order-item" key={item.id}>
+                      <span>{item.product_name || `Product #${item.product_id}`}</span>
+                      <span>Qty: {item.quantity}</span>
+                      <span>Price: INR {Number(item.price).toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="admin-order-actions">
+                  <select
+                    value={statusDrafts[order.id] || order.status}
+                    onChange={(event) => handleOrderStatusChange(order.id, event.target.value)}
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="processing">In Progress</option>
+                    <option value="delivered">Delivered</option>
+                    <option value="shipped">Shipped</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                  <button type="button" onClick={() => handleUpdateOrderStatus(order.id)}>
+                    Mark Status
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </article>
+
+      <article className="admin-card admin-request-list">
+        <h2>Consultation Calls</h2>
+        {consultationRequests.length === 0 ? (
+          <p className="admin-empty">No consultation requests yet.</p>
+        ) : (
+          <div className="admin-request-table">
+            <div className="admin-request-header admin-request-consultation">
+              <span>Name</span>
+              <span>Contact</span>
+              <span>Call Time</span>
+              <span>Product Type</span>
+              <span>Details</span>
+              <span>Created</span>
+            </div>
+            {consultationRequests.map((request) => (
+              <div className="admin-request-row admin-request-consultation" key={request.id}>
+                <span>{request.name}</span>
+                <span>{request.contact_number}</span>
+                <span>{request.preferred_call_time}</span>
+                <span>{request.product_type}</span>
+                <span>{request.product_details}</span>
+                <span>{new Date(request.created_at).toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </article>
+
+      <article className="admin-card admin-request-list">
+        <h2>Quotation Requests</h2>
+        {quotationRequests.length === 0 ? (
+          <p className="admin-empty">No quotation requests yet.</p>
+        ) : (
+          <div className="admin-request-table">
+            <div className="admin-request-header admin-request-quotation">
+              <span>Name</span>
+              <span>WhatsApp</span>
+              <span>Drive Link</span>
+              <span>Product Type</span>
+              <span>Description</span>
+              <span>Created</span>
+            </div>
+            {quotationRequests.map((request) => (
+              <div className="admin-request-row admin-request-quotation" key={request.id}>
+                <span>{request.name}</span>
+                <span>{request.whatsapp_number}</span>
+                <span>
+                  <a href={request.drive_link} target="_blank" rel="noreferrer">
+                    Open Link
+                  </a>
+                </span>
+                <span>{request.product_type}</span>
+                <span>{request.product_description}</span>
+                <span>{new Date(request.created_at).toLocaleString()}</span>
               </div>
             ))}
           </div>

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { api } from '../../lib/api'
 import './customize.css'
 
 const Customize = () => {
@@ -41,6 +42,9 @@ const Customize = () => {
   const [isConsultModalOpen, setIsConsultModalOpen] = useState(false)
   const [isQuotationModalOpen, setIsQuotationModalOpen] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
+  const [errorMessage, setErrorMessage] = useState('')
+  const [isSubmittingConsultation, setIsSubmittingConsultation] = useState(false)
+  const [isSubmittingQuotation, setIsSubmittingQuotation] = useState(false)
   const [consultForm, setConsultForm] = useState({
     name: '',
     contactNumber: '',
@@ -89,17 +93,28 @@ const Customize = () => {
     }))
   }
 
-  const handleConsultSubmit = (event) => {
+  const handleConsultSubmit = async (event) => {
     event.preventDefault()
-    setIsConsultModalOpen(false)
-    setSuccessMessage('Consultation request submitted. Our packaging team will contact you shortly.')
-    setConsultForm({
-      name: '',
-      contactNumber: '',
-      callTime: '',
-      productType: '',
-      productDetails: '',
-    })
+    setSuccessMessage('')
+    setErrorMessage('')
+    setIsSubmittingConsultation(true)
+
+    try {
+      await api.createConsultationRequest(consultForm)
+      setIsConsultModalOpen(false)
+      setSuccessMessage('Consultation request submitted. Our packaging team will contact you shortly.')
+      setConsultForm({
+        name: '',
+        contactNumber: '',
+        callTime: '',
+        productType: '',
+        productDetails: '',
+      })
+    } catch (apiError) {
+      setErrorMessage(apiError.message)
+    } finally {
+      setIsSubmittingConsultation(false)
+    }
   }
 
   const handleQuotationFieldChange = (field, value) => {
@@ -109,17 +124,28 @@ const Customize = () => {
     }))
   }
 
-  const handleQuotationSubmit = (event) => {
+  const handleQuotationSubmit = async (event) => {
     event.preventDefault()
-    setIsQuotationModalOpen(false)
-    setSuccessMessage('Quotation request submitted. We will review your design details and get back to you.')
-    setQuotationForm({
-      name: '',
-      whatsappNumber: '',
-      driveLink: '',
-      productType: '',
-      productDescription: '',
-    })
+    setSuccessMessage('')
+    setErrorMessage('')
+    setIsSubmittingQuotation(true)
+
+    try {
+      await api.createQuotationRequest(quotationForm)
+      setIsQuotationModalOpen(false)
+      setSuccessMessage('Quotation request submitted. We will review your design details and get back to you.')
+      setQuotationForm({
+        name: '',
+        whatsappNumber: '',
+        driveLink: '',
+        productType: '',
+        productDescription: '',
+      })
+    } catch (apiError) {
+      setErrorMessage(apiError.message)
+    } finally {
+      setIsSubmittingQuotation(false)
+    }
   }
 
   return (
@@ -225,6 +251,7 @@ const Customize = () => {
       </section>
 
       {successMessage && <p className="customize-success-banner">{successMessage}</p>}
+      {errorMessage && <p className="customize-error-banner">{errorMessage}</p>}
 
       <section className="customize-support-grid">
         <article className="customize-support-card">
@@ -318,8 +345,8 @@ const Customize = () => {
                 />
               </label>
 
-              <button type="submit" className="customize-modal-submit">
-                Submit Request
+              <button type="submit" className="customize-modal-submit" disabled={isSubmittingConsultation}>
+                {isSubmittingConsultation ? 'Submitting...' : 'Submit Request'}
               </button>
             </form>
           </section>
@@ -409,8 +436,8 @@ const Customize = () => {
                 />
               </label>
 
-              <button type="submit" className="customize-modal-submit">
-                Submit Quotation Request
+              <button type="submit" className="customize-modal-submit" disabled={isSubmittingQuotation}>
+                {isSubmittingQuotation ? 'Submitting...' : 'Submit Quotation Request'}
               </button>
             </form>
           </section>

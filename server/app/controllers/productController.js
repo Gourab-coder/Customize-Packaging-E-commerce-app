@@ -1,20 +1,32 @@
 const { pool } = require('../config/db');
+const { deleteAsset, isCloudinaryConfigured, uploadBuffer } = require('../utils/cloudinary');
 
 const normalizeImageUrls = (imageUrls) => {
-  if (!Array.isArray(imageUrls)) {
-    return [];
+  if (Array.isArray(imageUrls)) {
+    return imageUrls
+      .map((url) => String(url).trim())
+      .filter((url) => url.length > 0);
   }
 
-  return imageUrls
-    .map((url) => String(url).trim())
-    .filter((url) => url.length > 0);
+  if (typeof imageUrls === 'string') {
+    return imageUrls
+      .split(',')
+      .map((url) => url.trim())
+      .filter((url) => url.length > 0);
+  }
+
+  return [];
 };
+
+const normalizeImageRecords = (images) =>
+  images.filter((image) => image && image.image_url);
 
 const mapProductsWithImages = (products, imageRows) => {
   const imageMap = imageRows.reduce((acc, item) => {
     if (!acc[item.product_id]) {
       acc[item.product_id] = [];
     }
+
     acc[item.product_id].push(item.image_url);
     return acc;
   }, {});
@@ -23,6 +35,65 @@ const mapProductsWithImages = (products, imageRows) => {
     ...product,
     images: imageMap[product.id] || []
   }));
+};
+
+const uploadFilesToCloudinary = async (files) => {
+  if (!Array.isArray(files) || files.length === 0) {
+    return [];
+  }
+
+  if (!isCloudinaryConfigured()) {
+    const error = new Error('Cloudinary is not configured on the server');
+    error.statusCode = 500;
+    throw error;
+  }
+  
+  const uploads = [];
+
+  try {
+    for (const file of files) {
+      const result = await uploadBuffer(file.buffer, {
+        folder: 'packaging/products',
+        resource_type: 'image'
+      });
+
+      uploads.push({
+        image_url: result.secure_url,
+        public_id: result.public_id
+      });
+    }
+    console.log(`Uploaded ${uploads.length} files to Cloudinary successfully.`);
+
+
+    return uploads;
+  } catch (error) {
+    console.log('Error uploading files to Cloudinary:', error.message);
+    await Promise.allSettled(uploads.map((upload) => deleteAsset(upload.public_id)));
+    throw error;
+  }
+};
+
+const deleteCloudinaryAssets = async (publicIds) => {
+  const filteredIds = publicIds.filter(Boolean);
+
+  if (filteredIds.length === 0) {
+    return;
+  }
+
+  if (!isCloudinaryConfigured()) {
+    const error = new Error('Cloudinary is not configured on the server');
+    error.statusCode = 500;
+    throw error;
+  }
+
+  const results = await Promise.allSettled(filteredIds.map((publicId) => deleteAsset(publicId)));
+  const failed = results.filter((result) => result.status === 'rejected');
+
+  if (failed.length > 0) {
+    const error = new Error('Failed to delete one or more Cloudinary images');
+    error.statusCode = 500;
+    throw error;
+  }
 };
 
 const getProducts = async (req, res) => {
@@ -67,6 +138,7 @@ const getProductById = async (req, res) => {
 
 const createProduct = async (req, res) => {
   const connection = await pool.getConnection();
+  let uploadedImages = [];
 
   try {
     const { name, description, price, stock, category_id, image_urls } = req.body;
@@ -92,17 +164,24 @@ const createProduct = async (req, res) => {
 
     const productId = result.insertId;
     const cleanImageUrls = normalizeImageUrls(image_urls);
+    uploadedImages = await uploadFilesToCloudinary(req.files);
 
-    if (cleanImageUrls.length > 0) {
-      const imageValues = cleanImageUrls.map((url) => [productId, url]);
-      await connection.query('INSERT INTO product_images (product_id, image_url) VALUES ?', [imageValues]);
+    const imageRecords = normalizeImageRecords([
+      ...cleanImageUrls.map((url) => ({ image_url: url, public_id: null })),
+      ...uploadedImages
+    ]);
+
+    if (imageRecords.length > 0) {
+      const imageValues = imageRecords.map((image) => [productId, image.image_url, image.public_id]);
+      await connection.query('INSERT INTO product_images (product_id, image_url, public_id) VALUES ?', [imageValues]);
     }
 
     await connection.commit();
     return res.status(201).json({ message: 'Product created successfully', product_id: productId });
   } catch (error) {
     await connection.rollback();
-    return res.status(500).json({ message: 'Failed to create product', error: error.message });
+    await Promise.allSettled(uploadedImages.map((image) => deleteAsset(image.public_id)));
+    return res.status(error.statusCode || 500).json({ message: 'Failed to create product', error: error.message });
   } finally {
     connection.release();
   }
@@ -133,13 +212,13 @@ const updateProduct = async (req, res) => {
       return res.status(404).json({ message: 'Product not found' });
     }
 
-    if (Array.isArray(image_urls)) {
+    if (Array.isArray(image_urls) || typeof image_urls === 'string') {
       await connection.query('DELETE FROM product_images WHERE product_id = ?', [productId]);
 
       const cleanImageUrls = normalizeImageUrls(image_urls);
       if (cleanImageUrls.length > 0) {
-        const imageValues = cleanImageUrls.map((url) => [productId, url]);
-        await connection.query('INSERT INTO product_images (product_id, image_url) VALUES ?', [imageValues]);
+        const imageValues = cleanImageUrls.map((url) => [productId, url, null]);
+        await connection.query('INSERT INTO product_images (product_id, image_url, public_id) VALUES ?', [imageValues]);
       }
     }
 
@@ -159,6 +238,12 @@ const deleteProduct = async (req, res) => {
   try {
     await connection.beginTransaction();
 
+    const [imageRows] = await connection.query(
+      'SELECT public_id FROM product_images WHERE product_id = ?',
+      [req.params.id]
+    );
+
+    await deleteCloudinaryAssets(imageRows.map((row) => row.public_id));
     await connection.query('DELETE FROM product_images WHERE product_id = ?', [req.params.id]);
     const [result] = await connection.query('DELETE FROM products WHERE id = ?', [req.params.id]);
 
@@ -171,7 +256,7 @@ const deleteProduct = async (req, res) => {
     return res.json({ message: 'Product deleted successfully' });
   } catch (error) {
     await connection.rollback();
-    return res.status(500).json({ message: 'Failed to delete product', error: error.message });
+    return res.status(error.statusCode || 500).json({ message: 'Failed to delete product', error: error.message });
   } finally {
     connection.release();
   }

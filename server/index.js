@@ -7,6 +7,7 @@ const authRoutes = require('./app/routes/authRoutes');
 const categoriesRoutes = require('./app/routes/categoriesRoutes');
 const productsRoutes = require('./app/routes/productsRoutes');
 const ordersRoutes = require('./app/routes/ordersRoutes');
+const requestsRoutes = require('./app/routes/requestsRoutes');
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -34,6 +35,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoriesRoutes);
 app.use('/api/products', productsRoutes);
 app.use('/api/orders', ordersRoutes);
+app.use('/api/requests', requestsRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ message: 'Route not found' });
