@@ -11,9 +11,9 @@ const pool = mysql.createPool({
   connectionLimit: Number(process.env.DB_CONNECTION_LIMIT) || 10,
   queueLimit: 0,
 
-  ssl: {
-    rejectUnauthorized: false // 🔥 REQUIRED for Railway
-  }
+  // ssl: {
+  //   rejectUnauthorized: false // 🔥 REQUIRED for Railway
+  // }
 });
 
 const deriveCloudinaryPublicId = (imageUrl) => {
