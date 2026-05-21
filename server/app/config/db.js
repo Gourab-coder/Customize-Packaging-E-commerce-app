@@ -1,20 +1,170 @@
-const mysql = require('mysql2/promise');
+const { Pool } = require('pg');
 
-const pool = mysql.createPool({
-  host: process.env.MYSQL_HOST,
-  port: process.env.MYSQL_PORT, // 🔥 IMPORTANT
-  user: process.env.MYSQL_USER,
-  password: process.env.MYSQL_PASSWORD,
-  database: process.env.MYSQL_DATABASE,
+const parseBoolean = (value) => ['1', 'true', 'yes', 'on', 'require'].includes(String(value).toLowerCase());
 
-  waitForConnections: true,
-  connectionLimit: Number(process.env.DB_CONNECTION_LIMIT) || 10,
-  queueLimit: 0,
+const createPoolConfig = () => {
+  const baseConfig = process.env.DATABASE_URL
+    ? {
+        connectionString: process.env.DATABASE_URL
+      }
+    : {
+        host: process.env.PGHOST || process.env.POSTGRES_HOST || 'localhost',
+        port: Number(process.env.PGPORT || process.env.POSTGRES_PORT || 5432),
+        user: process.env.PGUSER || process.env.POSTGRES_USER,
+        password: process.env.PGPASSWORD || process.env.POSTGRES_PASSWORD,
+        database: process.env.PGDATABASE || process.env.POSTGRES_DATABASE
+      };
 
-  // ssl: {
-  //   rejectUnauthorized: false // 🔥 REQUIRED for Railway
-  // }
-});
+  const shouldUseSsl =
+    parseBoolean(process.env.PGSSLMODE) ||
+    parseBoolean(process.env.PG_SSL) ||
+    parseBoolean(process.env.POSTGRES_SSL);
+
+  return {
+    ...baseConfig,
+    max: Number(process.env.DB_CONNECTION_LIMIT) || 10,
+    ssl: shouldUseSsl ? { rejectUnauthorized: false } : false
+  };
+};
+
+const pgPool = new Pool(createPoolConfig());
+
+const buildBulkValuesClause = (rows, startIndex) => {
+  const values = [];
+  let parameterIndex = startIndex;
+
+  const clause = rows
+    .map((row) => {
+      if (!Array.isArray(row)) {
+        throw new Error('Bulk insert values must be arrays');
+      }
+
+      const placeholders = row.map((value) => {
+        values.push(value);
+        return `$${parameterIndex++}`;
+      });
+
+      return `(${placeholders.join(', ')})`;
+    })
+    .join(', ');
+
+  return {
+    clause,
+    nextIndex: parameterIndex,
+    values
+  };
+};
+
+const transformQuery = (sql, params = []) => {
+  if (!Array.isArray(params) || params.length === 0) {
+    return { text: sql, values: [] };
+  }
+
+  let text = '';
+  let values = [];
+  let searchStart = 0;
+  let parameterIndex = 1;
+
+  for (const param of params) {
+    const placeholderIndex = sql.indexOf('?', searchStart);
+    if (placeholderIndex === -1) {
+      throw new Error('Query placeholder count does not match provided parameters');
+    }
+
+    const precedingSql = sql.slice(searchStart, placeholderIndex);
+    text += precedingSql;
+
+    if (Array.isArray(param)) {
+      if (/\bVALUES\s*$/i.test(precedingSql)) {
+        const { clause, nextIndex, values: bulkValues } = buildBulkValuesClause(param, parameterIndex);
+        text += clause;
+        values = values.concat(bulkValues);
+        parameterIndex = nextIndex;
+      } else if (/\bIN\s*\(\s*$/i.test(precedingSql)) {
+        if (param.length === 0) {
+          text += 'NULL';
+        } else {
+          const placeholders = param.map((value) => {
+            values.push(value);
+            return `$${parameterIndex++}`;
+          });
+          text += placeholders.join(', ');
+        }
+      } else {
+        values.push(param);
+        text += `$${parameterIndex++}`;
+      }
+    } else {
+      values.push(param);
+      text += `$${parameterIndex++}`;
+    }
+
+    searchStart = placeholderIndex + 1;
+  }
+
+  text += sql.slice(searchStart);
+  return { text, values };
+};
+
+const withInsertedId = (sql) => {
+  if (!/^\s*insert\s+into\b/i.test(sql) || /\breturning\b/i.test(sql)) {
+    return sql;
+  }
+
+  return `${sql} RETURNING id`;
+};
+
+const normalizeResult = (result) => [
+  result.rows,
+  {
+    affectedRows: result.rowCount,
+    insertId: result.rows[0]?.id ?? null
+  }
+];
+
+class PgConnection {
+  constructor(client) {
+    this.client = client;
+  }
+
+  async query(sql, params = []) {
+    const transformed = transformQuery(withInsertedId(sql), params);
+    const result = await this.client.query(transformed.text, transformed.values);
+    return normalizeResult(result);
+  }
+
+  async beginTransaction() {
+    await this.client.query('BEGIN');
+  }
+
+  async commit() {
+    await this.client.query('COMMIT');
+  }
+
+  async rollback() {
+    await this.client.query('ROLLBACK');
+  }
+
+  release() {
+    this.client.release();
+  }
+
+  async ping() {
+    await this.client.query('SELECT 1');
+  }
+}
+
+const pool = {
+  async query(sql, params = []) {
+    const transformed = transformQuery(withInsertedId(sql), params);
+    const result = await pgPool.query(transformed.text, transformed.values);
+    return normalizeResult(result);
+  },
+  async getConnection() {
+    const client = await pgPool.connect();
+    return new PgConnection(client);
+  }
+};
 
 const deriveCloudinaryPublicId = (imageUrl) => {
   if (typeof imageUrl !== 'string' || !imageUrl.includes('/upload/')) {
@@ -51,16 +201,23 @@ const deriveCloudinaryPublicId = (imageUrl) => {
 };
 
 const ensureProductImagePublicIdColumn = async () => {
-  const [columns] = await pool.query("SHOW COLUMNS FROM product_images LIKE 'public_id'");
+  const [columns] = await pool.query(
+    `SELECT column_name
+     FROM information_schema.columns
+     WHERE table_schema = 'public'
+       AND table_name = 'product_images'
+       AND column_name = 'public_id'
+     LIMIT 1`
+  );
 
   if (columns.length === 0) {
-    await pool.query('ALTER TABLE product_images ADD COLUMN public_id VARCHAR(255) NULL AFTER image_url');
+    await pool.query('ALTER TABLE product_images ADD COLUMN public_id VARCHAR(255)');
   }
 };
 
 const backfillProductImagePublicIds = async () => {
   const [rows] = await pool.query(
-    'SELECT id, image_url FROM product_images WHERE public_id IS NULL OR public_id = ""'
+    "SELECT id, image_url FROM product_images WHERE public_id IS NULL OR public_id = ''"
   );
 
   for (const row of rows) {
@@ -74,32 +231,32 @@ const backfillProductImagePublicIds = async () => {
 };
 
 const ensureAppTables = async () => {
-  await ensureProductImagePublicIdColumn();
-  await backfillProductImagePublicIds();
-
   await pool.query(`
     CREATE TABLE IF NOT EXISTS consultation_requests (
-      id INT AUTO_INCREMENT PRIMARY KEY,
+      id INTEGER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
       name VARCHAR(100) NOT NULL,
       contact_number VARCHAR(30) NOT NULL,
       preferred_call_time VARCHAR(20) NOT NULL,
       product_type VARCHAR(50) NOT NULL,
       product_details TEXT NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
     )
   `);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS quotation_requests (
-      id INT AUTO_INCREMENT PRIMARY KEY,
+      id INTEGER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
       name VARCHAR(100) NOT NULL,
       whatsapp_number VARCHAR(30) NOT NULL,
       drive_link VARCHAR(500) NOT NULL,
       product_type VARCHAR(50) NOT NULL,
       product_description TEXT NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  await ensureProductImagePublicIdColumn();
+  await backfillProductImagePublicIds();
 };
 
 const connectDB = async () => {
@@ -107,7 +264,7 @@ const connectDB = async () => {
   await connection.ping();
   connection.release();
   await ensureAppTables();
-  console.log('Connected to MySQL (packaging DB)');
+  console.log('Connected to PostgreSQL (packaging DB)');
 };
 
 module.exports = { pool, connectDB };
